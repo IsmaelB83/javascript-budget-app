@@ -14,7 +14,8 @@
 // MODEL
 var BudgetModel = (function(month, year) {
     // Function constructor of a Budget Item
-    let BudgetItem = function(description, value) {
+    let BudgetItem = function(id, description, value) {
+        this.id = id;
         this.description = description;
         this.value = value;
     };
@@ -31,34 +32,44 @@ var BudgetModel = (function(month, year) {
     };
 
     // Methods for Budget class
-    Budget.prototype.addItem = function(type, description, value) {
+    Budget.prototype.addItem = function(type, id, description, value) {
         let auxValue = parseFloat(value);
         switch(type) {
             case 'expense': 
-                this.listOfExpenses.push(new BudgetItem(description,value));
+                this.listOfExpenses.push(new BudgetItem(id, description,value));
                 this.totalExpense += auxValue
                 this.total -= auxValue
                 break;
             case 'income':
-                this.listOfIncomes.push(new BudgetItem(description,value));
+                this.listOfIncomes.push(new BudgetItem(id, description,value));
                 this.totalIncome += auxValue;
                 this.total += auxValue;
                 break;
         }
     };
     
-    Budget.prototype.removeItem = function(type, index) {
+    Budget.prototype.removeItem = function(type, id) {
         let item;
         switch (type) {
-            case 'expense':                
-                item = this.listOfExpenses[index];
-                this.listOfExpenses.splice(index,1);
+            case 'expense':
+                for (i=0;i<this.listOfExpenses.length;i++) {
+                    if (this.listOfExpenses[i].id === id) {
+                        item = this.listOfExpenses[i];
+                        break;
+                    }
+                }
+                this.listOfExpenses.splice(i,1);
                 this.total += item.value;
                 this.totalExpense -= item.value
                 break;        
             case 'income':
-                item = this.listOfIncomes[index];
-                this.listOfIncomes.splice(index,1);
+                for (i=0;i<this.listOfIncomes.length;i++) {
+                    if (this.listOfIncomes[i].id === id) {
+                        item = this.listOfIncomes[i];
+                        break;
+                    }
+                }
+                this.listOfIncomes.splice(i,1);
                 this.total -= item.value;
                 this.totalIncome -= item.value
                 break;
@@ -108,19 +119,14 @@ var BudgetView = (function(month, year) {
     
     document.querySelector(".budget__title--month").textContent = month + ' ' + year;
 
-    addItem = function (type, description, value, eventHandler) {
-        let html = "", lista, index = 0;
-        switch (type) {
-            case 'expense':
-                lista = document.querySelector(".expenses__list");
-                index = lista.getElementsByClassName("item").length;
-                break;
-            case 'income':
-                lista = document.querySelector(".income__list");
-                index = lista.getElementsByClassName("item").length;
-                break;
+    addItem = function (type, id, description, value, eventHandler) {
+        let html = "", lista;
+        if (type === 'expense') {
+            lista = document.querySelector(".expenses__list");
+        } else if (type === 'income') {
+            lista = document.querySelector(".income__list");
         }
-        html += '<div class="item clearfix" id="' + type + '-' + index + '">';
+        html += '<div class="item clearfix" id="' + id + '">';
         html += '<div class="item__description">' + description + '</div>';
         html += '<div class="right clearfix"><div class="item__value">' + parseFloat(value).toFixed(2) + '</div>';
         html += '<div class="item__delete">';
@@ -138,11 +144,6 @@ var BudgetView = (function(month, year) {
         // Delete node
         let parent = node.parentElement;
         parent.removeChild(node);
-        // Add event listener to handle delete operation (refers to controller)
-        let buttons = document.getElementsByClassName('item__delete--btn');
-        for (i=0;i<buttons.length;i++) {
-            buttons[i].addEventListener('click', eventHandler);
-        }
     };
 
     getInput = function () {
@@ -156,6 +157,10 @@ var BudgetView = (function(month, year) {
     clearInput = function () {
         document.querySelector('.add__description').value = '';
         document.querySelector('.add__value').value = 0;
+    };
+
+    typeSelected = function () {
+        document.querySelector('.add__btn').classList.toggle("red");
     };
 
     updateBudget = function(total, incomes, expenses) {
@@ -176,6 +181,7 @@ var BudgetView = (function(month, year) {
         // Input
         getInput: this.getInput.bind(this),
         clearInput: this.clearInput.bind(this),
+        typeSelected: this.typeSelected.bind(this),
         // Expenses
         addExpense: this.addItem.bind(this,'expense'),
         removeExpense: this.removeItem.bind(this,'expense'),
@@ -196,42 +202,48 @@ var BudgetController = (function(model,view) {
             addRegister();
         }
     });
+    document.querySelector(".add__type").addEventListener('change', function(event) {
+        view.typeSelected();
+    });
 
     // Event handler to create new items (income or expense)
     function addRegister() {
         // Get info input from View
-        let newItem = view.getInput(), status;
-        switch(newItem.type) {
-            case 'exp':
-                // Update model and then view
-                model.addExpense (newItem.description, newItem.value);
-                status = model.getStatus();
-                view.addExpense(newItem.description, newItem.value, deleteRegister)
-                view.clearInput();
-                view.updateBudget(status.total, status.income, status.expense);
-                break;
-            case 'inc': 
-                // Update model and then view
-                model.addIncome (newItem.description, newItem.value);
-                status = model.getStatus();
-                view.addIncome(newItem.description, newItem.value, deleteRegister)
-                view.clearInput();
-                view.updateBudget(status.total, status.income, status.expense);
-                break;
+        let newItem = view.getInput(), status, id;
+        if (newItem.description !== '' && newItem.value > 0) {
+            switch(newItem.type) {
+                case 'exp':
+                    // Update model and then view
+                    id = 'expense-' + model.getExpenses().length;
+                    model.addExpense (id, newItem.description, newItem.value);
+                    status = model.getStatus();
+                    view.addExpense(id, newItem.description, newItem.value, deleteRegister)
+                    view.clearInput();
+                    view.updateBudget(status.total, status.income, status.expense);
+                    break;
+                case 'inc': 
+                    // Update model and then view
+                    id = 'income-' + model.getIncomes().length;
+                    model.addIncome (id, newItem.description, newItem.value);
+                    status = model.getStatus();
+                    view.addIncome(id, newItem.description, newItem.value, deleteRegister)
+                    view.clearInput();
+                    view.updateBudget(status.total, status.income, status.expense);
+                    break;
+            }
         }
     }
 
     // Event handler to delete existing items (income or expense)
     function deleteRegister(event) {
         let nodo = event.srcElement.parentElement.parentElement.parentElement.parentElement;
-        let id = nodo.id.split("-");
-        switch (id[0]) {
+        switch (nodo.id.split("-")[0]) {
             case 'income':
-                model.removeIncome(id[1]);
+                model.removeIncome(nodo.id);
                 view.removeIncome(event.srcElement.parentElement.parentElement.parentElement.parentElement);
                 break;
             case 'expense':
-                model.removeExpense(id[1]);
+                model.removeExpense(nodo.id);
                 view.removeExpense(event.srcElement.parentElement.parentElement.parentElement.parentElement);
                 break;
         }
