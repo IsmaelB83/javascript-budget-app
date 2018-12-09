@@ -64,33 +64,33 @@ var BudgetModel = (function(month, year) {
     };
 
     Budget.prototype.updatePercentages = function(type) {
-        for (let i = 0;i<this.listOfExpenses.length;i++) {
-            this.listOfExpenses[i].percentage = this.listOfExpenses[i].value / this.totalIncome * 100;
-        }                
+        this.listOfExpenses.forEach(element => {
+            element.percentage = element.value / this.totalIncome * 100;
+        });
     };
     
     Budget.prototype.removeItem = function(type, id) {
         let item;
         switch (type) {
             case 'expense':
-                for (i=0;i<this.listOfExpenses.length;i++) {
+                for (let i = 0; i < this.listOfExpenses.length; i++) {
                     if (this.listOfExpenses[i].id === id) {
                         item = this.listOfExpenses[i];
+                        this.listOfExpenses.splice(i,1);
                         break;
                     }
                 }
-                this.listOfExpenses.splice(i,1);
                 this.total += item.value;
                 this.totalExpense -= item.value
                 break;        
             case 'income':
-                for (i=0;i<this.listOfIncomes.length;i++) {
+                for (let i = 0; i < this.listOfIncomes.length; i++) {
                     if (this.listOfIncomes[i].id === id) {
                         item = this.listOfIncomes[i];
+                        this.listOfIncomes.splice(i,1);
                         break;
                     }
                 }
-                this.listOfIncomes.splice(i,1);
                 this.total -= item.value;
                 this.totalIncome -= item.value
                 break;
@@ -153,6 +153,8 @@ var BudgetView = (function(month, year) {
         addDescriptionClass: '.add__description',
         addValueClass: '.add__value',
         addButtonClass: '.add__btn',
+        itemValueClass: '.item__value',
+        itemPercClas: '.item__percentage'
     }
 
     addItem = function (type, id, description, value, percentage, eventHandler) {
@@ -179,12 +181,16 @@ var BudgetView = (function(month, year) {
 
     updatePercentages = function(totalIncome) {
         let nodos = document.querySelector(idStringsDOM.expensesListClass).querySelectorAll('.item');
-        for (i=0;i<nodos.length;i++) {
-            let expense = nodos[i].querySelector('.item__value');
-            let percen = nodos[i].querySelector('.item__percentage');
-            let aux = ((parseFloat(expense.textContent)/totalIncome) * 100).toFixed(1);
-            percen.textContent = aux + ' %';
-        }
+        nodos.forEach(element => {
+            let expense = element.querySelector(idStringsDOM.itemValueClass);
+            let percen = element.querySelector(idStringsDOM.itemPercClas);
+            if (parseFloat(totalIncome)>0) {
+                let aux = ((parseFloat(expense.textContent)/totalIncome) * 100).toFixed(1);
+                percen.textContent = aux + ' %';
+            } else {
+                percen.textContent = '100.0 %';
+            }
+        });
     }
 
     return {
@@ -208,12 +214,18 @@ var BudgetView = (function(month, year) {
                 };
             },
         // Setters
-        setBudget: function(total, incomes, expenses, percentage) 
+        setBudget: function(total, incomes, expenses) 
             {
                 document.querySelector(idStringsDOM.budgetTotalClass).textContent = total.toFixed(2);
                 document.querySelector(idStringsDOM.budgetIncomeClass).textContent = '+ ' + parseFloat(incomes).toFixed(2);
                 document.querySelector(idStringsDOM.budgetExpensesClass).textContent = '- ' + parseFloat(expenses).toFixed(2);
-                document.querySelector(idStringsDOM.budgetPercentageClass).textContent = parseFloat(percentage).toFixed(1) + ' %';
+                if (parseFloat(incomes)>0) {
+                    document.querySelector(idStringsDOM.budgetPercentageClass).textContent = ((expenses/incomes)*100).toFixed(1) + ' %';
+                } else if (parseFloat(expenses)>0) {
+                    document.querySelector(idStringsDOM.budgetPercentageClass).textContent = '100.0 %';
+                } else {
+                    document.querySelector(idStringsDOM.budgetPercentageClass).textContent = '0.0 %';
+                }
                 updatePercentages(incomes);
             },
         setInput: function (type, description, value) 
@@ -221,6 +233,7 @@ var BudgetView = (function(month, year) {
                 document.querySelector(idStringsDOM.addTypeClass).value = type;
                 document.querySelector(idStringsDOM.addDescriptionClass).value = '';
                 document.querySelector(idStringsDOM.addValueClass).value = 0;
+                document.querySelector(idStringsDOM.addDescriptionClass).focus();
             },
         typeChange: function () 
             {
