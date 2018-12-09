@@ -154,10 +154,11 @@ var BudgetView = (function(month, year) {
         addValueClass: '.add__value',
         addButtonClass: '.add__btn',
         itemValueClass: '.item__value',
-        itemPercClas: '.item__percentage'
+        itemPercClas: '.item__percentage',
+        containerClass: '.container',
     }
 
-    addItem = function (type, id, description, value, percentage, eventHandler) {
+    var addItem = function (type, id, description, value, percentage) {
         let html = "", lista;
         if (type === 'expense') {
             lista = document.querySelector(idStringsDOM.expensesListClass);
@@ -175,11 +176,9 @@ var BudgetView = (function(month, year) {
         html += '</div></div></div>';
         // Instead of using lista.innnerHTML += html which will destroy all previous eventhandlers of the "delete" buttons
         lista.insertAdjacentHTML('beforeend', html);
-        // Add event listener to handle delete operation (refers to controller)
-        document.getElementById(id).querySelector(idStringsDOM.deleteItemClass).addEventListener('click', eventHandler);
     };
 
-    updatePercentages = function(totalIncome) {
+    var updatePercentages = function(totalIncome) {
         let nodos = document.querySelector(idStringsDOM.expensesListClass).querySelectorAll('.item');
         nodos.forEach(element => {
             let expense = element.querySelector(idStringsDOM.itemValueClass);
@@ -237,11 +236,14 @@ var BudgetView = (function(month, year) {
             },
         typeChange: function () 
             {
+                document.querySelector(idStringsDOM.addTypeClass).classList.toggle("red-focus");
+                document.querySelector(idStringsDOM.addDescriptionClass).classList.toggle("red-focus");
+                document.querySelector(idStringsDOM.addValueClass).classList.toggle("red-focus");
                 document.querySelector(idStringsDOM.addButtonClass).classList.toggle("red");
             },
         // List of expenses / income
-        addExpense: this.addItem.bind(this,'expense'),
-        addIncome:  this.addItem.bind(this,'income'),
+        addExpense: addItem.bind(this,'expense'),
+        addIncome:  addItem.bind(this,'income'),
         removeItem: function(node) 
             {
                 let parent = node.parentElement;
@@ -258,18 +260,13 @@ var BudgetController = (function(model,view) {
     var setUpEventListeners = function () {
         var DOM = view.getDOM();
         document.querySelector(DOM.addButtonClass).addEventListener('click', addRegister);
-        document.addEventListener('keypress', function(event) { 
-            if (event.key === 'Enter') {
-                addRegister();
-            }
-        });
-        document.querySelector(DOM.addTypeClass).addEventListener('change', function(event) {
-            view.typeChange();
-        });
+        document.addEventListener('keypress', function(event) { if (event.key === 'Enter') { addRegister(); }});
+        document.querySelector(DOM.addTypeClass).addEventListener('change', function(event) { view.typeChange(); });
+        document.querySelector(DOM.containerClass).addEventListener('click', deleteRegister);
     }
 
     // Event handler to create new items (income or expense)
-    function addRegister() {
+    var addRegister = function (event) {
         // Get info input from View
         let newItem = view.getInput(), status, id, percentage;
         if (newItem.description !== '' && newItem.value > 0) {
@@ -278,27 +275,26 @@ var BudgetController = (function(model,view) {
                     // Update model and then view
                     id = 'expense-' + model.getExpenses().length;
                     percentage = model.addExpense (id, newItem.description, newItem.value);
-                    view.addExpense(id, newItem.description, newItem.value, percentage, deleteRegister);
+                    view.addExpense(id, newItem.description, newItem.value, percentage);
                     view.setInput('exp','',0);
                     break;
                 case 'inc': 
                     // Update model and then view
                     id = 'income-' + model.getIncomes().length;
                     model.addIncome (id, newItem.description, newItem.value);
-                    view.addIncome(id, newItem.description, newItem.value, 0, deleteRegister)
+                    view.addIncome(id, newItem.description, newItem.value, 0)
                     view.setInput('inc','',0);
                     break;
             }
             status = model.getStatus();
             view.setBudget(status.total, status.income, status.expense, status.percentage);
-            // view.updatePercentages();
         }
     }
 
     // Event handler to delete existing items (income or expense)
-    function deleteRegister(event) {
+    var deleteRegister = function(event) {
         let nodo, status;
-        nodo = event.srcElement.parentElement.parentElement.parentElement.parentElement;
+        nodo = event.target.parentElement.parentElement.parentElement.parentElement;
         if (nodo.id.split("-")[0] === 'income') {
             model.removeIncome(nodo.id);
         } else {
