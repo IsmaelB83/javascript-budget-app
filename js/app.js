@@ -177,8 +177,14 @@ var BudgetView = (function(month, year) {
         document.getElementById(id).querySelector(idStringsDOM.deleteItemClass).addEventListener('click', eventHandler);
     };
 
-    updatePercentages = function() {
-        
+    updatePercentages = function(totalIncome) {
+        let nodos = document.querySelector(idStringsDOM.expensesListClass).querySelectorAll('.item');
+        for (i=0;i<nodos.length;i++) {
+            let expense = nodos[i].querySelector('.item__value');
+            let percen = nodos[i].querySelector('.item__percentage');
+            let aux = ((parseFloat(expense.textContent)/totalIncome) * 100).toFixed(1);
+            percen.textContent = aux + ' %';
+        }
     }
 
     return {
@@ -208,6 +214,7 @@ var BudgetView = (function(month, year) {
                 document.querySelector(idStringsDOM.budgetIncomeClass).textContent = '+ ' + parseFloat(incomes).toFixed(2);
                 document.querySelector(idStringsDOM.budgetExpensesClass).textContent = '- ' + parseFloat(expenses).toFixed(2);
                 document.querySelector(idStringsDOM.budgetPercentageClass).textContent = parseFloat(percentage).toFixed(1) + ' %';
+                updatePercentages(incomes);
             },
         setInput: function (type, description, value) 
             {
