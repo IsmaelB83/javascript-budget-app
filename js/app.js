@@ -14,10 +14,11 @@
 // MODEL
 var BudgetModel = (function(month, year) {
     // Function constructor of a Budget Item
-    let BudgetItem = function(id, description, value) {
+    let BudgetItem = function(id, description, value, percentage) {
         this.id = id;
         this.description = description;
-        this.value = value;
+        this.value = parseFloat(value);
+        this.percentage = percentage;
     };
 
     // Function constructor of a Budget object
@@ -27,25 +28,45 @@ var BudgetModel = (function(month, year) {
         this.total = 0;
         this.totalIncome = 0;
         this.totalExpense = 0;
+        this.percExpense = 0;
         this.listOfIncomes = [];
         this.listOfExpenses = [];
     };
 
     // Methods for Budget class
     Budget.prototype.addItem = function(type, id, description, value) {
-        let auxValue = parseFloat(value);
+        let percentage = 0;
         switch(type) {
             case 'expense': 
-                this.listOfExpenses.push(new BudgetItem(id, description,value));
-                this.totalExpense += auxValue
-                this.total -= auxValue
+                if (Math.abs(this.totalIncome)>0) {
+                    percentage = ((value/this.totalIncome)*100).toFixed(1);
+                } else {
+                    percentage = '100.0';
+                }    
+                this.listOfExpenses.push(new BudgetItem(id, description, value, percentage));
+                this.totalExpense += value;
+                this.total -= value;
                 break;
             case 'income':
-                this.listOfIncomes.push(new BudgetItem(id, description,value));
-                this.totalIncome += auxValue;
-                this.total += auxValue;
+                this.listOfIncomes.push(new BudgetItem(id, description, value, 0));
+                this.totalIncome += value;
+                this.total += value;
                 break;
         }
+        // Calculate % expense over income
+        if (Math.abs(this.totalIncome)>0) {
+            this.percExpense = ((this.totalExpense/this.totalIncome)*100).toFixed(1);
+        } else {
+            this.percExpense = '0.0';
+        }
+        this.updatePercentages ();
+        return percentage;
+    };
+
+    Budget.prototype.updatePercentages = function(type) {
+        for (let i = 0;i<this.listOfExpenses.length;i++) {
+            this.listOfExpenses[i].percentage = this.listOfExpenses[i].value / this.totalIncome * 100;
+        }                
     };
     
     Budget.prototype.removeItem = function(type, id) {
@@ -74,6 +95,7 @@ var BudgetModel = (function(month, year) {
                 this.totalIncome -= item.value
                 break;
         }
+        this.updatePercentages ();
     };
 
     Budget.prototype.getStatus = function () {
@@ -82,6 +104,7 @@ var BudgetModel = (function(month, year) {
             total: budget.total,
             income: budget.totalIncome,
             expense: budget.totalExpense,
+            percentage: budget.percExpense,
         };
     };
 
@@ -154,44 +177,56 @@ var BudgetView = (function(month, year) {
         document.getElementById(id).querySelector(idStringsDOM.deleteItemClass).addEventListener('click', eventHandler);
     };
 
+    updatePercentages = function() {
+        
+    }
+
     return {
-        // Global
-        init: function() {  
-                this.updateBudget(0.00,0.00,0.00); 
+        // Global init
+        init: function() 
+            {
+                this.setBudget(0.00,0.00,0.00); 
                 document.querySelector(".budget__title--month").textContent = month + ' ' + year;
             },
-        DOM: idStringsDOM,
-        updateBudget: function(total, incomes, expenses) {
-                        total = parseFloat(incomes) - parseFloat(expenses);
-                        let percentage = total !== 0 ? (parseFloat(expenses) / parseFloat(total).toFixed(2)) : 0;
-                        let signo = total >= 0 ? '+ ' : '- ';
-                        document.querySelector(idStringsDOM.budgetTotalClass).textContent = signo + Math.abs(parseFloat(total).toFixed(2));
-                        document.querySelector(idStringsDOM.budgetIncomeClass).textContent = '+ ' + parseFloat(incomes).toFixed(2);
-                        document.querySelector(idStringsDOM.budgetExpensesClass).textContent = '- ' + parseFloat(expenses).toFixed(2);
-                        document.querySelector(idStringsDOM.budgetPercentageClass).textContent = parseFloat(percentage).toFixed(2) + ' %';
-                    },
-        // Input
-        getInput: function() {
-                    return {
-                        type: document.querySelector(idStringsDOM.addTypeClass).value,
-                        description: document.querySelector(idStringsDOM.addDescriptionClass).value,
-                        value: parseFloat(document.querySelector(idStringsDOM.addValueClass).value),
-                    };
-                  },
-        clearInput: function () {
-                        document.querySelector(idStringsDOM.addDescriptionClass).value = '';
-                        document.querySelector(idStringsDOM.addValueClass).value = 0;
-                    },
-        typeChange: function () {
-                        document.querySelector(idStringsDOM.addButtonClass).classList.toggle("red");
-                    },
+        // Getters
+        getDOM: function() 
+            { 
+                return idStringsDOM; 
+            },
+        getInput: function() 
+            {
+                return {
+                    type: document.querySelector(idStringsDOM.addTypeClass).value,
+                    description: document.querySelector(idStringsDOM.addDescriptionClass).value,
+                    value: parseFloat(document.querySelector(idStringsDOM.addValueClass).value),
+                };
+            },
+        // Setters
+        setBudget: function(total, incomes, expenses, percentage) 
+            {
+                document.querySelector(idStringsDOM.budgetTotalClass).textContent = total.toFixed(2);
+                document.querySelector(idStringsDOM.budgetIncomeClass).textContent = '+ ' + parseFloat(incomes).toFixed(2);
+                document.querySelector(idStringsDOM.budgetExpensesClass).textContent = '- ' + parseFloat(expenses).toFixed(2);
+                document.querySelector(idStringsDOM.budgetPercentageClass).textContent = parseFloat(percentage).toFixed(1) + ' %';
+            },
+        setInput: function (type, description, value) 
+            {
+                document.querySelector(idStringsDOM.addTypeClass).value = type;
+                document.querySelector(idStringsDOM.addDescriptionClass).value = '';
+                document.querySelector(idStringsDOM.addValueClass).value = 0;
+            },
+        typeChange: function () 
+            {
+                document.querySelector(idStringsDOM.addButtonClass).classList.toggle("red");
+            },
         // List of expenses / income
         addExpense: this.addItem.bind(this,'expense'),
-        addIncome: this.addItem.bind(this,'income'),
-        removeItem: function(node) {
-                        let parent = node.parentElement;
-                        parent.removeChild(node);
-                    },
+        addIncome:  this.addItem.bind(this,'income'),
+        removeItem: function(node) 
+            {
+                let parent = node.parentElement;
+                parent.removeChild(node);
+            },
     };
 
 })('December', 2018);
@@ -201,7 +236,7 @@ var BudgetController = (function(model,view) {
 
     // Add event listeners to add new expense/income register
     var setUpEventListeners = function () {
-        var DOM = view.DOM;
+        var DOM = view.getDOM();
         document.querySelector(DOM.addButtonClass).addEventListener('click', addRegister);
         document.addEventListener('keypress', function(event) { 
             if (event.key === 'Enter') {
@@ -222,27 +257,21 @@ var BudgetController = (function(model,view) {
                 case 'exp':
                     // Update model and then view
                     id = 'expense-' + model.getExpenses().length;
-                    model.addExpense (id, newItem.description, newItem.value);
-                    status = model.getStatus();
-                    if (status.income > 0) {
-                        percentage = ((newItem.value/status.income)*100).toFixed(1);
-                    } else {
-                        percentage = 100;
-                    }
+                    percentage = model.addExpense (id, newItem.description, newItem.value);
                     view.addExpense(id, newItem.description, newItem.value, percentage, deleteRegister);
-                    view.clearInput();
-                    view.updateBudget(status.total, status.income, status.expense);
+                    view.setInput('exp','',0);
                     break;
                 case 'inc': 
                     // Update model and then view
                     id = 'income-' + model.getIncomes().length;
                     model.addIncome (id, newItem.description, newItem.value);
-                    status = model.getStatus();
                     view.addIncome(id, newItem.description, newItem.value, 0, deleteRegister)
-                    view.clearInput();
-                    view.updateBudget(status.total, status.income, status.expense);
+                    view.setInput('inc','',0);
                     break;
             }
+            status = model.getStatus();
+            view.setBudget(status.total, status.income, status.expense, status.percentage);
+            // view.updatePercentages();
         }
     }
 
@@ -257,7 +286,7 @@ var BudgetController = (function(model,view) {
         }
         view.removeItem(event.srcElement.parentElement.parentElement.parentElement.parentElement);
         status = model.getStatus();
-        view.updateBudget(status.total, status.income, status.expense);
+        view.setBudget(status.total, status.income, status.expense);
     }
 
     // Initilization function 
