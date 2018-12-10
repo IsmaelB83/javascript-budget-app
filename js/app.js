@@ -12,113 +12,119 @@
  * ************************************************************/
 
 // MODEL
-var BudgetModel = (function(month, year) {
-    // Function constructor of a Budget Item
-    let BudgetItem = function(id, description, value, percentage) {
-        this.id = id;
-        this.description = description;
-        this.value = parseFloat(value);
-        this.percentage = percentage;
-    };
-
-    // Function constructor of a Budget object
-    let Budget = function(month, year) {
-        this.month = month;
-        this.year = year;
-        this.total = 0;
-        this.totalIncome = 0;
-        this.totalExpense = 0;
-        this.percExpense = 0;
-        this.listOfIncomes = [];
-        this.listOfExpenses = [];
-    };
-
-    // Methods for Budget class
-    Budget.prototype.addItem = function(type, id, description, value) {
-        let percentage = 0;
-        switch(type) {
-            case 'expense': 
-                if (Math.abs(this.totalIncome)>0) {
-                    percentage = ((value/this.totalIncome)*100).toFixed(1);
-                } else {
-                    percentage = '100.0';
-                }    
-                this.listOfExpenses.push(new BudgetItem(id, description, value, percentage));
-                this.totalExpense += value;
-                this.total -= value;
-                break;
-            case 'income':
-                this.listOfIncomes.push(new BudgetItem(id, description, value, 0));
-                this.totalIncome += value;
-                this.total += value;
-                break;
+var BudgetModel = ((month, year) => {
+    // Budget Item class
+    class BudgetItem {
+        constructor(id, description, value, percentage) {
+            this.id = id;
+            this.description = description;
+            this.value = parseFloat(value);
+            this.percentage = percentage;
         }
-        // Calculate % expense over income
-        if (Math.abs(this.totalIncome)>0) {
-            this.percExpense = ((this.totalExpense/this.totalIncome)*100).toFixed(1);
-        } else {
-            this.percExpense = '0.0';
-        }
-        this.updatePercentages ();
-        return percentage;
-    };
+    }
 
-    Budget.prototype.updatePercentages = function(type) {
-        this.listOfExpenses.forEach(element => {
-            element.percentage = element.value / this.totalIncome * 100;
-        });
-    };
-    
-    Budget.prototype.removeItem = function(type, id) {
-        let item;
-        switch (type) {
-            case 'expense':
-                for (let i = 0; i < this.listOfExpenses.length; i++) {
-                    if (this.listOfExpenses[i].id === id) {
-                        item = this.listOfExpenses[i];
-                        this.listOfExpenses.splice(i,1);
-                        break;
+    // Budget class
+    class Budget {
+        constructor(month, year) {
+            this.month = month;
+            this.year = year;
+            this.total = 0;
+            this.totalIncome = 0;
+            this.totalExpense = 0;
+            this.percExpense = 0;
+            this.listOfIncomes = [];
+            this.listOfExpenses = [];
+        }
+
+        // Methods for Budget class
+        addItem(type, id, description, value) {
+            let percentage = 0;
+            switch (type) {
+                case 'expense':
+                    if (Math.abs(this.totalIncome) > 0) {
+                        percentage = ((value / this.totalIncome) * 100).toFixed(1);
                     }
-                }
-                this.total += item.value;
-                this.totalExpense -= item.value
-                break;        
-            case 'income':
-                for (let i = 0; i < this.listOfIncomes.length; i++) {
-                    if (this.listOfIncomes[i].id === id) {
-                        item = this.listOfIncomes[i];
-                        this.listOfIncomes.splice(i,1);
-                        break;
+                    else {
+                        percentage = '100.0';
                     }
-                }
-                this.total -= item.value;
-                this.totalIncome -= item.value
-                break;
+                    this.listOfExpenses.push(new BudgetItem(id, description, value, percentage));
+                    this.totalExpense += value;
+                    this.total -= value;
+                    break;
+                case 'income':
+                    this.listOfIncomes.push(new BudgetItem(id, description, value, 0));
+                    this.totalIncome += value;
+                    this.total += value;
+                    break;
+            }
+            // Calculate % expense over income
+            if (Math.abs(this.totalIncome) > 0) {
+                this.percExpense = ((this.totalExpense / this.totalIncome) * 100).toFixed(1);
+            }
+            else {
+                this.percExpense = '0.0';
+            }
+            this.updatePercentages();
+            return percentage;
         }
-        this.updatePercentages ();
-    };
 
-    Budget.prototype.getStatus = function () {
-        return  status = {
-            date: budget.month + ' ' + budget.year,
-            total: budget.total,
-            income: budget.totalIncome,
-            expense: budget.totalExpense,
-            percentage: budget.percExpense,
-        };
-    };
-
-    Budget.prototype.getItems = function (type) {
-        switch (type) {
-            case 'expenses':
-                return this.listOfExpenses;
-            case 'incomes':
-                return this.listOfIncomes;
+        updatePercentages(type) {
+            this.listOfExpenses.forEach(element => {
+                element.percentage = element.value / this.totalIncome * 100;
+            });
         }
-    };
+
+        removeItem(type, id) {
+            let item;
+            switch (type) {
+                case 'expense':
+                    for (let i = 0; i < this.listOfExpenses.length; i++) {
+                        if (this.listOfExpenses[i].id === id) {
+                            item = this.listOfExpenses[i];
+                            this.listOfExpenses.splice(i, 1);
+                            break;
+                        }
+                    }
+                    this.total += item.value;
+                    this.totalExpense -= item.value;
+                    break;
+                case 'income':
+                    for (let i = 0; i < this.listOfIncomes.length; i++) {
+                        if (this.listOfIncomes[i].id === id) {
+                            item = this.listOfIncomes[i];
+                            this.listOfIncomes.splice(i, 1);
+                            break;
+                        }
+                    }
+                    this.total -= item.value;
+                    this.totalIncome -= item.value;
+                    break;
+            }
+            this.updatePercentages();
+        }
+
+        getStatus() {
+            return status = {
+                date: budget.month + ' ' + budget.year,
+                total: budget.total,
+                income: budget.totalIncome,
+                expense: budget.totalExpense,
+                percentage: budget.percExpense,
+            };
+        }
+        
+        getItems(type) {
+            switch (type) {
+                case 'expense':
+                    return this.listOfExpenses;
+                case 'income':
+                    return this.listOfIncomes;
+            }
+        }
+    }
 
     // Attributes of the model
-    var budget = new Budget(month, year);
+    let budget = new Budget(month, year);
 
     // Return public section of Budget
     return publicModel = {
@@ -127,25 +133,26 @@ var BudgetModel = (function(month, year) {
         // Expenses
         addExpense: budget.addItem.bind(budget, 'expense'),
         removeExpense: budget.removeItem.bind(budget, 'expense'),
-        getExpenses: budget.getItems.bind(budget, 'expenses'),
+        getExpenses: budget.getItems.bind(budget, 'expense'),
         // Incomes
         addIncome: budget.addItem.bind(budget, 'income'),
         removeIncome: budget.removeItem.bind(budget, 'income'),
-        getIncomes: budget.getItems.bind(budget, 'incomes'),
+        getIncomes: budget.getItems.bind(budget, 'income'),
     };
     
 
 })('December', 2018);
 
 // VIEW
-var BudgetView = (function(month, year) {
+var BudgetView = ((month, year) => {
     
     // String to access main objects in the DOM
-    let idStringsDOM = {
+    const idStringsDOM = {
         budgetTotalClass: '.budget__value',
         budgetIncomeClass: '.budget__income--value',
         budgetExpensesClass: '.budget__expenses--value',
         budgetPercentageClass: '.budget__expenses--percentage',
+        budgetMonth: '.budget__title--month',
         deleteItemClass: '.item__delete--btn',
         expensesListClass: '.expenses__list',
         incomeListClass: '.income__list',
@@ -158,27 +165,26 @@ var BudgetView = (function(month, year) {
         containerClass: '.container',
     }
 
-    var addItem = function (type, id, description, value, percentage) {
+    let addItem = function (type, id, description, value, percentage) {
         let html = "", lista;
         if (type === 'expense') {
             lista = document.querySelector(idStringsDOM.expensesListClass);
         } else if (type === 'income') {
             lista = document.querySelector(idStringsDOM.incomeListClass);
         }
-        html += '<div class="item clearfix" id="' + id + '">';
-        html += '<div class="item__description">' + description + '</div>';
-        html += '<div class="right clearfix"><div class="item__value">' + parseFloat(value).toFixed(2) + '</div>';
+        html = `<div class="item clearfix" id="${id}">
+                <div class="item__description">${description}</div>
+                <div class="right clearfix"><div class="item__value">${parseFloat(value).toFixed(2)}</div>`
         if (type === 'expense') {
-            html += '<div class="item__percentage">' + percentage + ' %</div>';
+            html += `<div class="item__percentage">${percentage} %</div>`
         }
-        html += '<div class="item__delete">';
-        html += '<button class="item__delete--btn"><i class="ion-ios-close-outline"></i></button>';
-        html += '</div></div></div>';
+        html += `<div class="item__delete"><button class="item__delete--btn">
+                 <i class="ion-ios-close-outline"></i></button></div></div></div>`
         // Instead of using lista.innnerHTML += html which will destroy all previous eventhandlers of the "delete" buttons
         lista.insertAdjacentHTML('beforeend', html);
     };
 
-    var updatePercentages = function(totalIncome) {
+    let updatePercentages = function(totalIncome) {
         let nodos = document.querySelector(idStringsDOM.expensesListClass).querySelectorAll('.item');
         nodos.forEach(element => {
             let expense = element.querySelector(idStringsDOM.itemValueClass);
@@ -197,7 +203,8 @@ var BudgetView = (function(month, year) {
         init: function() 
             {
                 this.setBudget(0.00,0.00,0.00); 
-                document.querySelector(".budget__title--month").textContent = month + ' ' + year;
+                document.querySelector(idStringsDOM.budgetMonth).textContent = month + ' ' + year;
+                return 'OK';
             },
         // Getters
         getDOM: function() 
@@ -254,19 +261,20 @@ var BudgetView = (function(month, year) {
 })('December', 2018);
 
 // CONTROLLER
-var BudgetController = (function(model,view) {
+var BudgetController = ((model,view) => {
 
     // Add event listeners to add new expense/income register
-    var setUpEventListeners = function () {
-        var DOM = view.getDOM();
+    let setUpEventListeners = function () {
+        let DOM = view.getDOM();
         document.querySelector(DOM.addButtonClass).addEventListener('click', addRegister);
         document.addEventListener('keypress', function(event) { if (event.key === 'Enter') { addRegister(); }});
         document.querySelector(DOM.addTypeClass).addEventListener('change', function(event) { view.typeChange(); });
         document.querySelector(DOM.containerClass).addEventListener('click', deleteRegister);
+        return 'OK';
     }
 
     // Event handler to create new items (income or expense)
-    var addRegister = function (event) {
+    let addRegister = function (event) {
         // Get info input from View
         let newItem = view.getInput(), status, id, percentage;
         if (newItem.description !== '' && newItem.value > 0) {
@@ -292,7 +300,7 @@ var BudgetController = (function(model,view) {
     }
 
     // Event handler to delete existing items (income or expense)
-    var deleteRegister = function(event) {
+    let deleteRegister = function(event) {
         let nodo, status;
         nodo = event.target.parentElement.parentElement.parentElement.parentElement;
         if (nodo.id.split("-")[0] === 'income') {
@@ -310,10 +318,8 @@ var BudgetController = (function(model,view) {
         init: function () {
             console.log('Application has started');
             console.log('-----------------------');
-            console.log('- Adding event listeners... ok');
-            setUpEventListeners();
-            console.log('- Render UI... ok');
-            view.init();
+            console.log(`- Adding event listeners... ${setUpEventListeners()}`);
+            console.log(`- Render UI... ${view.init()}`);
             console.log('- Connecting to REST API... ko');
             console.log('- Loading user profile... ko');
         }
